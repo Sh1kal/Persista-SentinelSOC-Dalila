@@ -1,0 +1,23 @@
+services:
+  dvwa:
+    image: vulnerables/web-dvwa
+    container_name: dvwa
+    environment:
+      ENVIRONMENT: lab
+      OWNER: SOC-Team
+    ports:
+      - "8080:80"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    networks:
+      - soc-net
+
+
+networks:
+
+  soc-net:
+    driver: bridge

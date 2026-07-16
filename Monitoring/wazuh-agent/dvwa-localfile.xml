@@ -1,0 +1,9 @@
+  <localfile>
+    <location>/home/kali/Persista-SentinelSOC/Monitoring/dvwa-logs/access.log</location>
+    <log_format>apache</log_format>
+  </localfile>
+
+  <localfile>
+    <location>/home/kali/Persista-SentinelSOC/Monitoring/dvwa-logs/error.log</location>
+    <log_format>apache</log_format>
+  </localfile>

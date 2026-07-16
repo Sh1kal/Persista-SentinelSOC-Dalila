@@ -1,0 +1,29 @@
+# Runtime logs and process state
+Monitoring/dvwa-logs/*.log
+Monitoring/dvwa-logs/*.pid
+Monitoring/dvwa-logs/*.offset
+
+# Wazuh generated certificates and runtime data
+infrastructure/wazuh-docker/**/config/wazuh_indexer_ssl_certs/
+infrastructure/wazuh-docker/**/wazuh-indexer-data/
+infrastructure/wazuh-docker/**/wazuh-manager-data/
+infrastructure/wazuh-docker/**/wazuh-dashboard-data/
+infrastructure/wazuh-docker/**/filebeat-data/
+
+# Environment and secret files
+.env
+.env.*
+*.env
+!.env.example
+.envrc
+*.secret
+*.secrets
+.secrets/
+secrets/
+
+# Python cache files
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/

@@ -7,3 +7,8 @@
     <location>/home/kali/Persista-SentinelSOC/Monitoring/dvwa-logs/error.log</location>
     <log_format>apache</log_format>
   </localfile>
+
+  <localfile>
+    <location>/home/kali/Persista-SentinelSOC/Monitoring/dvwa-logs/auth.log</location>
+    <log_format>json</log_format>
+  </localfile>

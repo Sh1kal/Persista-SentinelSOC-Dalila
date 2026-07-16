@@ -1,0 +1,15 @@
+<group name="dvwa,authentication_failed,">
+  <rule id="100100" level="3">
+    <decoded_as>json</decoded_as>
+    <field name="event_type">^dvwa_auth_failure$</field>
+    <field name="result">^failure$</field>
+    <description>DVWA failed login from $(srcip) for user $(username)</description>
+    <options>no_log</options>
+  </rule>
+
+  <rule id="100101" level="10" frequency="3" timeframe="60">
+    <if_matched_sid>100100</if_matched_sid>
+    <same_source_ip />
+    <description>Three DVWA failed logins from $(srcip) within 60 seconds</description>
+  </rule>
+</group>

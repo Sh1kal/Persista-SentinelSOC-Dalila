@@ -1,12 +1,17 @@
 services:
   dvwa:
-    image: vulnerables/web-dvwa
+    build:
+      context: ./Docker/dvwa
+    image: persista/dvwa:auth-logging
     container_name: dvwa
     environment:
       ENVIRONMENT: lab
       OWNER: SOC-Team
     ports:
       - "8080:80"
+    volumes:
+      - dvwa-apache-logs:/var/log/apache2
+      - dvwa-auth-logs:/var/log/dvwa
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost/"]
       interval: 30s
@@ -15,9 +20,39 @@ services:
       start_period: 30s
     networks:
       - soc-net
+      - wazuh-network
 
+  dvwa-wazuh-agent:
+    build:
+      context: ./Docker/dvwa-wazuh-agent
+    image: persista/dvwa-wazuh-agent:4.14.6
+    container_name: dvwa-wazuh-agent
+    hostname: dvwa-sentinelsoc
+    restart: unless-stopped
+    environment:
+      WAZUH_MANAGER_SERVER: wazuh.manager
+      WAZUH_MANAGER_PORT: "1514"
+      WAZUH_REGISTRATION_SERVER: wazuh.manager
+      WAZUH_REGISTRATION_PORT: "1515"
+      WAZUH_AGENT_NAME: dvwa-sentinelsoc
+      WAZUH_AGENT_GROUP: default
+    volumes:
+      - dvwa-apache-logs:/var/log/apache2:ro
+      - dvwa-auth-logs:/var/log/dvwa:ro
+      - dvwa-wazuh-agent-etc:/var/ossec/etc
+    networks:
+      - wazuh-network
 
 networks:
-
   soc-net:
     driver: bridge
+
+  wazuh-network:
+    external: true
+    name: single-node_default
+
+volumes:
+  dvwa-apache-logs:
+  dvwa-auth-logs:
+  dvwa-wazuh-agent-etc:
+  dvwa-wazuh-agent-queue:

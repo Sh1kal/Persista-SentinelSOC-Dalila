@@ -17,12 +17,17 @@ status() { printf '[wazuh-dvwa-config] %s\n' "$*"; }
 [ -r "$SNIPPET" ] || fail "Configuration snippet is missing: $SNIPPET"
 [ -x "$VALIDATOR" ] || fail "Validator is missing or not executable: $VALIDATOR"
 
-if grep -Fq "$ACCESS_PATH" "$CONFIG" && grep -Fq "$ERROR_PATH" "$CONFIG"; then
+access_count="$(grep -Fc "$ACCESS_PATH" "$CONFIG" || true)"
+error_count="$(grep -Fc "$ERROR_PATH" "$CONFIG" || true)"
+if (( access_count > 0 && error_count > 0 )); then
   status "Both DVWA log paths are already configured; no changes made."
   exit 0
 fi
-if grep -Fq "$ACCESS_PATH" "$CONFIG" || grep -Fq "$ERROR_PATH" "$CONFIG"; then
+if (( access_count > 0 || error_count > 0 )); then
   fail "Only one DVWA log path is already present; resolve the partial configuration manually."
+fi
+if grep -Eq '<[[:space:]]*/?[[:space:]]*ossec_config([[:space:]>])' "$SNIPPET"; then
+  fail "The snippet must contain localfile entries only, without an ossec_config wrapper."
 fi
 
 timestamp="$(date +'%Y%m%d-%H%M%S')"
@@ -34,26 +39,21 @@ trap cleanup EXIT
 cp -a "$CONFIG" "$backup" || fail "Could not create backup $backup"
 status "Backup created: $backup"
 
-closing_count="$(grep -c '^[[:space:]]*</ossec_config>[[:space:]]*$' "$CONFIG")"
-if [ "$closing_count" -ne 1 ]; then
-  cp -a "$backup" "$CONFIG"
-  fail "Expected exactly one final </ossec_config> tag; original configuration restored."
-fi
-
-awk -v snippet="$SNIPPET" '
-  /^[[:space:]]*<\/ossec_config>[[:space:]]*$/ {
-    while ((getline line < snippet) > 0) print line
-    close(snippet)
-  }
-  { print }
-' "$CONFIG" > "$temp" || { cp -a "$backup" "$CONFIG"; fail "Could not build the updated configuration."; }
+{
+  cat "$CONFIG"
+  printf '\n<ossec_config>\n'
+  cat "$SNIPPET"
+  printf '</ossec_config>\n'
+} > "$temp" || fail "Could not build the updated configuration."
 chown --reference="$CONFIG" "$temp"
 chmod --reference="$CONFIG" "$temp"
-mv "$temp" "$CONFIG" || { cp -a "$backup" "$CONFIG"; fail "Could not install the updated configuration."; }
+mv "$temp" "$CONFIG" || fail "Could not install the updated configuration; the original remains in place."
 
 if ! "$VALIDATOR" -t; then
-  cp -a "$backup" "$CONFIG"
-  fail "Validation failed; restored $backup."
+  if cp -a "$backup" "$CONFIG"; then
+    fail "Validation failed; restored the original configuration from $backup."
+  fi
+  fail "Validation failed and automatic restoration failed; recover manually from $backup."
 fi
 status "Configuration installed and validated successfully."
 

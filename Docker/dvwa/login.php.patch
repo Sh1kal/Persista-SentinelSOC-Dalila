@@ -1,0 +1,25 @@
+--- a/login.php
++++ b/login.php
+@@ -41,4 +41,22 @@
+ 	// Login failed
++	$auth_username = isset( $_POST[ 'username' ] )
++		? preg_replace( '/[\x00-\x1F\x7F]/', '', (string) $_POST[ 'username' ] )
++		: '';
++	$auth_event = array(
++		'event_type' => 'dvwa_auth_failure',
++		'srcip' => isset( $_SERVER[ 'REMOTE_ADDR' ] )
++			? $_SERVER[ 'REMOTE_ADDR' ]
++			: 'unknown',
++		'username' => $auth_username,
++		'result' => 'failure',
++		'timestamp' => gmdate( 'c' )
++	);
++	file_put_contents(
++		'/var/log/dvwa/auth.log',
++		json_encode( $auth_event, JSON_UNESCAPED_SLASHES ) . PHP_EOL,
++		FILE_APPEND | LOCK_EX
++	);
++
+ 	dvwaMessagePush( 'Login failed' );
+ 	dvwaRedirect( 'login.php' );
+ }

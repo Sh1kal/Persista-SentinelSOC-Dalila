@@ -11,13 +11,18 @@ mkdir -p "$RUNTIME_DIR"
 if [ -f "$PID_FILE" ]; then
   read -r old_pid < "$PID_FILE" || old_pid=""
   if [[ "$old_pid" =~ ^[0-9]+$ ]] && kill -0 "$old_pid" 2>/dev/null; then
-    printf '[dvwa-log-sync] Already running with PID %s.\n' "$old_pid"
-    exit 0
+    if [ -r "/proc/$old_pid/cmdline" ] && tr '\0' ' ' < "/proc/$old_pid/cmdline" | grep -Fq 'sync_dvwa_logs.sh'; then
+      printf '[dvwa-log-sync] Already running with PID %s.\n' "$old_pid"
+      exit 0
+    fi
+    printf '[dvwa-log-sync] PID %s belongs to another process; replacing stale PID file.\n' "$old_pid"
+  else
+    printf '[dvwa-log-sync] Replacing stale PID file.\n'
   fi
-  printf '[dvwa-log-sync] Replacing stale PID file.\n'
+  rm -f "$PID_FILE"
 fi
 
-nohup "$SCRIPT_DIR/sync_dvwa_logs.sh" >> "$OUTPUT_FILE" 2>&1 &
+nohup setsid "$SCRIPT_DIR/sync_dvwa_logs.sh" </dev/null >> "$OUTPUT_FILE" 2>&1 &
 sync_pid=$!
 printf '%s\n' "$sync_pid" > "$PID_FILE"
 sleep 1

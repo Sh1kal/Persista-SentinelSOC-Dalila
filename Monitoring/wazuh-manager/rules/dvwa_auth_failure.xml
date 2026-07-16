@@ -1,0 +1,8 @@
+<group name="dvwa,authentication_failed,">
+  <rule id="100110" level="7">
+    <if_sid>86600</if_sid>
+    <field name="event_type" type="pcre2">^dvwa_auth_failure$</field>
+    <field name="result" type="pcre2">^failure$</field>
+    <description>DVWA authentication failure</description>
+  </rule>
+</group>

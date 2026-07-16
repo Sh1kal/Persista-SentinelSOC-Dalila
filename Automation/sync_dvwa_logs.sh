@@ -39,24 +39,33 @@ mkdir -p "$LOG_DIR"
 sync_one() {
   local name="$1" remote="$2"
   local output="$LOG_DIR/$name.log" state="$LOG_DIR/$name.offset"
-  local remote_size offset count
+  local identity_state="$LOG_DIR/$name.identity"
+  local remote_size remote_identity saved_identity offset count state_temp identity_temp
 
-  if ! remote_size="$(docker exec "$CONTAINER" stat -c '%s' "$remote" 2>/dev/null)"; then
+  if ! read -r remote_size remote_identity < <(docker exec "$CONTAINER" stat -c '%s %d:%i' "$remote" 2>/dev/null); then
     error "Cannot read $remote inside '$CONTAINER'."
     return 1
   fi
-  if ! [[ "$remote_size" =~ ^[0-9]+$ ]]; then
-    error "Unexpected size returned for $remote."
+  if ! [[ "$remote_size" =~ ^[0-9]+$ && "$remote_identity" =~ ^[0-9]+:[0-9]+$ ]]; then
+    error "Unexpected metadata returned for $remote."
     return 1
   fi
 
   offset=0
+  saved_identity=""
   if [ -f "$state" ]; then
     read -r offset < "$state" || offset=0
     [[ "$offset" =~ ^[0-9]+$ ]] || offset=0
   fi
-  if (( remote_size < offset )); then
-    status "$name.log was rotated or truncated; resuming at byte 0."
+  if [ -f "$identity_state" ]; then
+    read -r saved_identity < "$identity_state" || saved_identity=""
+  fi
+
+  if { [ -s "$output" ] && [ ! -f "$state" ]; } || \
+     { [ -n "$saved_identity" ] && [ "$saved_identity" != "$remote_identity" ]; } || \
+     (( remote_size < offset )); then
+    status "$name.log source changed or was truncated; rebuilding the host copy from byte 0."
+    : > "$output"
     offset=0
   fi
 
@@ -65,7 +74,13 @@ sync_one() {
     if docker exec "$CONTAINER" sh -c \
       'dd if="$1" bs=1 skip="$2" count="$3" 2>/dev/null' sh \
       "$remote" "$offset" "$count" >> "$output"; then
-      printf '%s\n' "$remote_size" > "$state"
+      state_temp="$state.tmp.$$"
+      identity_temp="$identity_state.tmp.$$"
+      printf '%s\n' "$remote_size" > "$state_temp"
+      printf '%s\n' "$remote_identity" > "$identity_temp"
+      mv "$state_temp" "$state"
+      mv "$identity_temp" "$identity_state"
+      chmod 0644 "$output"
       status "Appended $count byte(s) to $name.log."
     else
       error "Failed to synchronize $remote."
@@ -73,6 +88,8 @@ sync_one() {
     fi
   else
     touch "$output"
+    chmod 0644 "$output"
+    printf '%s\n' "$remote_identity" > "$identity_state"
   fi
 }
 
@@ -87,6 +104,7 @@ while (( STOP_REQUESTED == 0 )); do
   fi
   sync_one access /var/log/apache2/access.log || true
   sync_one error /var/log/apache2/error.log || true
+  sync_one auth /var/log/dvwa/auth.log || true
   sleep "$POLL_SECONDS" &
   wait $! || true
 done

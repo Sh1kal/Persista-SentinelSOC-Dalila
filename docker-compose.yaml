@@ -12,6 +12,7 @@ services:
     volumes:
       - dvwa-apache-logs:/var/log/apache2
       - dvwa-auth-logs:/var/log/dvwa
+      - dvwa-yara-drop:/sentinelsoc/yara-drop
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost/"]
       interval: 30s
@@ -39,6 +40,7 @@ services:
     volumes:
       - dvwa-apache-logs:/var/log/apache2:ro
       - dvwa-auth-logs:/var/log/dvwa:ro
+      - dvwa-yara-drop:/sentinelsoc/yara-drop:ro
       - dvwa-wazuh-agent-etc:/var/ossec/etc
     networks:
       - wazuh-network
@@ -54,5 +56,6 @@ networks:
 volumes:
   dvwa-apache-logs:
   dvwa-auth-logs:
+  dvwa-yara-drop:
   dvwa-wazuh-agent-etc:
   dvwa-wazuh-agent-queue:

@@ -75,3 +75,32 @@ The stop script verifies the PID belongs to the synchronizer before sending a gr
 ## Events versus alerts
 
 Generating requests creates Apache log **events**. Synchronizing and collecting those events proves transport into the Wazuh pipeline, but it does not guarantee an **alert**. Alerts are emitted only when a Wazuh decoder and rule match an event at an alerting level. Ordinary login-page GET requests may be collected without triggering a rule; alert testing requires a separately reviewed rule or an event pattern known to match existing rules.
+
+## Safe YARA file detection
+
+The sidecar image builds the official YARA 4.5.5 source release with a pinned SHA-256 checksum. The `dvwa-yara-drop` named volume is writable by DVWA at `/sentinelsoc/yara-drop` and mounted read-only at the same path in `dvwa-wazuh-agent`. Wazuh FIM watches that directory in real time while the existing Apache and DVWA authentication collectors remain unchanged.
+
+The manager rules trigger `yara-scan.py` locally on the sidecar for new or modified files. The scanner accepts only regular, non-symlink files whose resolved path remains under `/sentinelsoc/yara-drop`, rejects files larger than 10 MiB, and limits YARA execution to 15 seconds. The only installed rule is the harmless `SentinelSOC_Harmless_Test` marker rule. The broader [Yara-Rules community repository](https://github.com/Yara-Rules/rules) is not cloned or loaded in this lab because this validation intentionally uses no malware rules or samples.
+
+Apply the manager and sidecar changes:
+
+```bash
+docker compose -f infrastructure/wazuh-docker/single-node/docker-compose.yml up -d wazuh.manager
+docker compose build dvwa-wazuh-agent
+docker compose up -d dvwa dvwa-wazuh-agent
+```
+
+After the sidecar is enrolled and connected, create exactly one harmless text file through DVWA's mount:
+
+```bash
+docker exec dvwa sh -c 'printf "%s\n" "This is harmless lab text: SENTINELSOC_YARA_TEST" > /sentinelsoc/yara-drop/harmless-yara-test.txt'
+```
+
+The expected manager alerts are rule `100121` for the FIM creation and level-12 rule `100123` for the YARA match. Confirm the local result and manager JSON:
+
+```bash
+docker exec dvwa-wazuh-agent tail -n 20 /var/ossec/logs/active-responses.log
+docker exec single-node-wazuh.manager-1 grep -n 'SentinelSOC_Harmless_Test' /var/ossec/logs/alerts/alerts.json
+```
+
+In the dashboard, query `rule.id:100123`, `rule.groups:yara`, or `data.yara_rule:SentinelSOC_Harmless_Test` against `wazuh-alerts-*`.

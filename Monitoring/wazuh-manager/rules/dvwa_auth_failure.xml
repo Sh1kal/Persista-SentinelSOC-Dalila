@@ -5,4 +5,10 @@
     <field name="result" type="pcre2">^failure$</field>
     <description>DVWA authentication failure</description>
   </rule>
+
+  <rule id="100111" level="12" frequency="5" timeframe="60">
+    <if_matched_sid>100110</if_matched_sid>
+    <same_source_ip />
+    <description>DVWA brute-force login attempt: five authentication failures from $(srcip) within 60 seconds</description>
+  </rule>
 </group>

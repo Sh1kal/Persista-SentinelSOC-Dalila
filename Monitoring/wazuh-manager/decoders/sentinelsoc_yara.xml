@@ -1,0 +1,9 @@
+<decoder name="sentinelsoc-yara">
+  <prematch>^wazuh-yara:</prematch>
+</decoder>
+
+<decoder name="sentinelsoc-yara-result">
+  <parent>sentinelsoc-yara</parent>
+  <regex>^wazuh-yara: INFO - Scan result: (\S+) (\S+)$</regex>
+  <order>yara_rule,yara_scanned_file</order>
+</decoder>

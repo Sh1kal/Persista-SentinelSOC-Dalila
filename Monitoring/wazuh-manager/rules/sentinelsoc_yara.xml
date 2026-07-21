@@ -1,0 +1,24 @@
+<group name="sentinelsoc,yara,syscheck,">
+  <rule id="100120" level="7">
+    <if_sid>550</if_sid>
+    <field name="file" type="pcre2">^/sentinelsoc/yara-drop/</field>
+    <description>SentinelSOC monitored file modified: $(file)</description>
+  </rule>
+
+  <rule id="100121" level="7">
+    <if_sid>554</if_sid>
+    <field name="file" type="pcre2">^/sentinelsoc/yara-drop/</field>
+    <description>SentinelSOC monitored file created: $(file)</description>
+  </rule>
+
+  <rule id="100122" level="0">
+    <decoded_as>sentinelsoc-yara</decoded_as>
+    <description>SentinelSOC YARA result grouping rule</description>
+  </rule>
+
+  <rule id="100123" level="12">
+    <if_sid>100122</if_sid>
+    <field name="yara_rule" type="pcre2">^SentinelSOC_Harmless_Test$</field>
+    <description>Harmless YARA test matched $(yara_scanned_file) with rule $(yara_rule)</description>
+  </rule>
+</group>

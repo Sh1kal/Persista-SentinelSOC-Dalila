@@ -28,3 +28,8 @@ __pycache__/
 .pytest_cache/
 .mypy_cache/
 infrastructure/
+
+# External SigmaHQ detection source (clone locally; do not vendor it)
+/Monitoring/rules/sigma/source/
+/Monitoring/rules/sigma/backups/
+/Monitoring/rules/sigma/.update-lock/

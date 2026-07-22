@@ -1,0 +1,14 @@
+<!--
+  Adapted from SigmaHQ rule 70ed1d26-0050-4b38-a599-92c53d57d45a.
+  Sigma YAML is source content only; Wazuh evaluates this native correlation rule.
+  Rule 100110 already normalizes a single DVWA authentication failure.
+  The established correlation ID 100111 is retained to preserve dashboards and history.
+-->
+<group name="sigma,dvwa,authentication_failed,">
+  <rule id="100111" level="12" frequency="5" timeframe="60">
+    <if_matched_sid>100110</if_matched_sid>
+    <same_source_ip />
+    <description>DVWA brute-force login attempt: five authentication failures from $(srcip) within 60 seconds (Sigma adaptation)</description>
+    <group>sigma,authentication_failures,attack.t1110,</group>
+  </rule>
+</group>
